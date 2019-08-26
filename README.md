@@ -50,7 +50,7 @@
 
 	* Particle System 오브젝트를 결합해 특이한 광원의 형태를 표현할 수도 있음
 
-Audio Source 컴포넌트
+## Audio Source 컴포넌트
 	
 	> 해당 오브젝트에 소리를 넣을 설정할 수 있는 컴포넌트
 

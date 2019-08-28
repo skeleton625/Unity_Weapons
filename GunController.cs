@@ -21,13 +21,23 @@ public class GunController : MonoBehaviour
     [SerializeField]
     /* 정조준 전 원래 위치 */
     private Vector3 originPos;
-    /* 현재 화면 위치 */
-    private Vector3 currentOriginPos;
+
+    /* 일반 사격 시, 반동 위치 */
+    private Vector3 recoilBack;
+    /* 정조준 시, 반동 위치 */
+    private Vector3 retroActionRecoilBack;
 
     void Start()
     {
         /* .총기 발사음 오디오 함수 정의 */
         gunAudioSource = GetComponent<AudioSource>();
+        /* 총구가 x축 방향을 향하고 있기 때문에 x축의 위치를 변경시켜 줌 */
+        /* 일반 사격 시, 반동 위치 정의 */
+        recoilBack = new Vector3(currentGun.retroActionForce, originPos.y, originPos.z);
+        /* 정조준 시, 반동 위치 정의 */
+        retroActionRecoilBack = new Vector3(currentGun.retroActionFineSightForce,
+                                                currentGun.fineSightOriginPos.y, currentGun.fineSightOriginPos.z);
+
     }
 
     // Update is called once per frame
@@ -67,17 +77,27 @@ public class GunController : MonoBehaviour
     private void TryReload()
     {
         if (Input.GetKeyDown(KeyCode.R) && !isReload &&
-            currentGun.currentBulletCount < currentGun.reloadBulletCount)
+            currentGun.currentBulletCount < currentGun.reloadBulletCount )
         {
+            CancelFineSight();
             StartCoroutine(ReloadCoroutine());
         }
     }
 
     private void TryFineSight()
     {
-        if(Input.GetButtonDown("Fire2") || Input.GetButtonUp("Fire2"))
+        if(!isReload)
         {
-            FineSight();
+            /* 정조준 버튼을 누르고 있을 때만 정조준이 되도록 함 */
+            if (Input.GetButtonDown("Fire2") && !isReload)
+            {
+                FineSight();
+            }
+            /* 정조준 버튼을 땟을 때, 정조준 상태가 취소되도록 함 */
+            else if(Input.GetButtonUp("Fire2") && !isReload)
+            {
+                CancelFineSight();
+            }
         }
     }
 
@@ -95,8 +115,12 @@ public class GunController : MonoBehaviour
                 /* 총 발사 이후의 함수 실행 */
                 Shoot();
             else
+            {
+                CancelFineSight();
                 /* 그렇지 않을 경우 장전된 탄이 없으므로 재장전 실행 */
                 StartCoroutine(ReloadCoroutine());
+            }
+                
         }
     }
 
@@ -110,6 +134,10 @@ public class GunController : MonoBehaviour
         PlaySE(currentGun.fireSound);
         /* 해당 Particle System 실행 */
         currentGun.muzzleFlash.Play();
+
+        /* 정조준과 일반 조준의 반복문의 무한 반복을 막기 위함 */
+        StopAllCoroutines();
+        StartCoroutine(RetroActionCoroutine());
     }
 
     // 정조준 실행 함수
@@ -122,14 +150,20 @@ public class GunController : MonoBehaviour
         /* */
         if(isFineSightMode)
         {
-            currentOriginPos = currentGun.fineSightOriginPos;
+            StopAllCoroutines();
+            StartCoroutine(FineSightActCoroutine());
         }
         else
         {
-            currentOriginPos = originPos;
+            StopAllCoroutines();
+            StartCoroutine(FineSightDeactCoroutine());
         }
+    }
 
-        StartCoroutine(FineSightActivateCoroutine());
+    public void CancelFineSight()
+    {
+        if (isFineSightMode)
+            FineSight();
     }
 
     // 총기 소리 실행 함수
@@ -145,7 +179,7 @@ public class GunController : MonoBehaviour
     IEnumerator ReloadCoroutine()
     {
         /* 현재 가지고 있는 탄이 있을 경우 */
-        if(currentGun.carryBulletCount > 0)
+        if (currentGun.carryBulletCount > 0)
         {
             isReload = true;
             /* 재장전 애니메이션을 실행 */
@@ -180,12 +214,79 @@ public class GunController : MonoBehaviour
     }
 
     // 정조준 상태에 따른 코루틴 함수
-    IEnumerator FineSightActivateCoroutine()
+    IEnumerator FineSightActCoroutine()
     {
-        while(currentGun.transform.localPosition != currentOriginPos)
+        while(currentGun.transform.localPosition != currentGun.fineSightOriginPos)
         {
-            currentGun.transform.localPosition = Vector3.Lerp(currentGun.transform.localPosition, currentOriginPos, 0.2f);
+            currentGun.transform.localPosition = Vector3.Lerp(currentGun.transform.localPosition, currentGun.fineSightOriginPos, 0.2f);
             yield return null;
+        }
+        currentGun.transform.localPosition = currentGun.fineSightOriginPos;
+    }
+
+    IEnumerator FineSightDeactCoroutine()
+    {
+        while (currentGun.transform.localPosition != originPos)
+        {
+            currentGun.transform.localPosition = Vector3.Lerp(currentGun.transform.localPosition, originPos, 0.2f);
+            yield return null;
+        }
+        currentGun.transform.localPosition = originPos;
+    }
+
+    /* 총 발사에 대한 반동을 주는 함수 */
+    IEnumerator RetroActionCoroutine()
+    {
+        /* 정조준 상태일 경우 */
+        if(isFineSightMode)
+        {
+            /* 
+             * 반동이 이뤄진 이후 중복을 막기 위해 처음 위치로 되돌림
+             * > 연출 목적
+             */
+            currentGun.transform.localPosition = currentGun.fineSightOriginPos;
+
+            // 반동 시작
+            /* 특정 x축 위치를 지나면 반복문을 종료하도록 함 */
+            while (currentGun.transform.localPosition.x <= currentGun.retroActionFineSightForce - 0.02f)
+            {
+                /* 반동 위치에 도달할 때까지 0.4f로 빠르게 이동 */
+                currentGun.transform.localPosition = Vector3.Lerp(currentGun.transform.localPosition, retroActionRecoilBack, 0.4f);
+                yield return null;
+            }
+
+            // 원위치 이동
+            while (currentGun.transform.localPosition != currentGun.fineSightOriginPos)
+            {
+                /* 도달한 반동 위치에서 원위치로 0.2f로 느리게 이동 */
+                currentGun.transform.localPosition = Vector3.Lerp(currentGun.transform.localPosition, currentGun.fineSightOriginPos, 0.2f);
+                yield return null;
+            }
+        }
+        else
+        {
+            /* 
+             * 반동이 이뤄진 이후 중복을 막기 위해 처음 위치로 되돌림
+             * > 연출 목적
+             */
+            currentGun.transform.localPosition = originPos;
+
+            // 반동 시작
+            /* 특정 x축 위치를 지나면 반복문을 종료하도록 함 */
+            while (currentGun.transform.localPosition.x <= currentGun.retroActionForce - 0.02f)
+            {
+                /* 반동 위치에 도달할 때까지 0.4f로 빠르게 이동 */
+                currentGun.transform.localPosition = Vector3.Lerp(currentGun.transform.localPosition, recoilBack, 0.4f);
+                yield return null;
+            }
+
+            // 원위치 이동
+            while(currentGun.transform.localPosition != originPos)
+            {
+                /* 도달한 반동 위치에서 원위치로 0.2f로 느리게 이동 */
+                currentGun.transform.localPosition = Vector3.Lerp(currentGun.transform.localPosition, originPos, 0.2f);
+                yield return null;
+            }
         }
     }
 }

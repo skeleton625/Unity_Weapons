@@ -26,9 +26,20 @@ public class GunController : MonoBehaviour
     private Vector3 recoilBack;
     /* 정조준 시, 반동 위치 */
     private Vector3 retroActionRecoilBack;
+    /* 총격을 받은 오브젝트에 대한 정보 */
+    private RaycastHit hitInfo;
+
+    [SerializeField]
+    /* 총알의 방향이 플레이어의 화면에 정중앙으로 설정하기 위함 */
+    private Camera theCamera;
+
+    [SerializeField]
+    /* 총 피격에 대한 효과 오브젝트 */
+    private GameObject hitEffectPrefab;
 
     void Start()
     {
+        originPos = Vector3.zero;
         /* .총기 발사음 오디오 함수 정의 */
         gunAudioSource = GetComponent<AudioSource>();
         /* 총구가 x축 방향을 향하고 있기 때문에 x축의 위치를 변경시켜 줌 */
@@ -130,6 +141,8 @@ public class GunController : MonoBehaviour
         --currentGun.currentBulletCount;
         /* 한 발 연사 시간 초기화 */
         currentFireRate = currentGun.fireRate;
+        /* 총격이 오브젝트에 맞는지 확인 */
+        Hit();
         /* 발사와 동시에 총기 소음 실행 */
         PlaySE(currentGun.fireSound);
         /* 해당 Particle System 실행 */
@@ -138,6 +151,25 @@ public class GunController : MonoBehaviour
         /* 정조준과 일반 조준의 반복문의 무한 반복을 막기 위함 */
         StopAllCoroutines();
         StartCoroutine(RetroActionCoroutine());
+    }
+
+    // 쏘는 그대로 오브젝트에 맞도록 구현함
+    /* 이외의 방법은 미리 생성한 다음 비활성화 하는 방법이 존재 있음 */
+    private void Hit()
+    {
+        /* 레이저 발사 위치를 절대 좌표로 정의 -> 상대 좌표는 발사하는 위치가 변하지 않기 때문 */
+        if(Physics.Raycast(theCamera.transform.position, theCamera.transform.forward, out hitInfo, currentGun.range))
+        {
+            /*
+             * 피격된 위치에 효과 오브젝트가 생성되도록 함
+             * RaycastHit.point -> 레이저와 충돌된 위치 좌표
+             * RaycastHit.normal -> 레이저와 충돌된 위치의 표면 좌표
+             * Quaternion.LooKRotation -> 매개변수가 가르키는 방향으로 회전한 값을 주는 함수
+             */
+            GameObject clone = Instantiate(hitEffectPrefab, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+            /* 생성된 피격 효과 오브젝트가 2초 뒤에 삭제되도록 함 */
+            Destroy(clone, 2f);
+        }
     }
 
     // 정조준 실행 함수

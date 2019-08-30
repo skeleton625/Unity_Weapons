@@ -55,3 +55,39 @@
 	> 해당 오브젝트에 소리를 넣을 설정할 수 있는 컴포넌트
 
 	> Play On Awake : 플레이를 시작할 때 소리 실행 시작
+
+## Particle System
+
+	> Gravity Modifier : 광원에 중력을 설정 가능
+
+	Trail
+
+		> 광원의 이동하는 부분을 따라 잔상이 남게 함
+
+		> Renderer 속성에서 Trail Material을 정의해줘야 함
+
+		> Ratio : 모든 광원에 잔상이 남거나 남지 않게 정의 가능
+
+		> Lifetime : 광원 잔상이 남는 시간을 정의
+
+		> Width over Trail : 잔상의 가로폭 길이를 정의
+
+## C# Script 부분
+
+## [HideInInspector]
+
+	> Unity의 Inspector 창에서 해당 변수가 표시되지 않도록 막을 수 있음
+
+## Instantiate 함수
+
+	> Prefab 오브젝트, 또는 Scene상 오브젝트를 복사해 특정 위치, 각도로 생성할 수 있음
+
+	> RaycastHit를 통해 총알이 피격된 오브젝트의 표면 방향으로 피격 이펙트가 발생하도록 설정할 수 있음
+
+	> Instantiate(hitEffectPrefab(피격 효과 오브젝트), hitInfo.point(피격된 위치), Quaternion.LookRotation(hitInfo.normal)(피격된 위치에서의 피격된 오브젝트의 표면방향));
+
+## Destroy 함수
+	
+	> 생성되어 있는 오브젝트를 특정 시간 이후에 삭제할 수 있는 함수
+
+	> Destroy(clone(오브젝트 객체), 2f) -> clone 오브젝트를 2초 뒤에 삭제

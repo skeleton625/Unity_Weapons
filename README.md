@@ -1,3 +1,11 @@
+## Inspector 창 관련
+	
+	> Unity 내 Inspector 창에서 오른쪽 위 자물쇠 버튼을 누르면
+
+	다른 오브젝트를 눌러도 Inspector 창이 변하지 않음
+	
+		> 다른 창도 마찬가지
+
 ## Particle System 컴포넌트
 
 	> 게임 내의 광원 이펙트를 표현하기 위한 시스템
@@ -91,3 +99,47 @@
 	> 생성되어 있는 오브젝트를 특정 시간 이후에 삭제할 수 있는 함수
 
 	> Destroy(clone(오브젝트 객체), 2f) -> clone 오브젝트를 2초 뒤에 삭제
+
+## Canvas
+
+	> Unity 내에서 모든 UI를 사용할 수 있도록 해주는 오브젝트
+
+	> Render Mode : 화면 동기화 관련
+
+		> Screen Space - Overlay를 통해 카메라 화면에 UI를 덮어 씌울 수 (오버레이)있음
+
+		> World Space - 절대 좌표에 UI를 위치시킬 수 있음
+
+	> Render Camera : 특정 카메라에 Canvas 오브젝트를 동기화 할 수 있음
+	
+	> Plane Distance : Render Camera를 통해 동기화 된 UI 화면과 카메라 간의 거리를 조정 가능
+
+		* Render Camera를 통해 UI를 정의할 경우, 오브젝트들에 의해 UI가 가려질 수 있음
+
+## Image Texture
+	
+	> Texture Type : 텍스터 타입을 설정
+
+		> 타입을 설정하지 않을 시, 다른 오브젝트 컴포넌트에서 사용할 수 없음
+
+	> Default : 오브젝트의 기본적인 속성( 크기나 형식 등)을 설정
+	
+		> Max Size : 이미지의 최대 크기를 설정
+
+		> 이미지의 실제 크기보다 작게 설정할 경우, 이미지가 잘리게 됨
+
+## Text
+
+	> UI 내에서 글자를 표시해주는 오브젝트
+
+	> Raycast Target : Mouse Raycast와 관련해 반응하도록 하는 속성
+
+	> Outline 컴포넌트
+
+		> 텍스트 테두리에 새로운 선을 정의할 수 있음
+
+## C# Script 부분
+
+	* UI 관련 스크립트를 작성하고 싶은 경우, Unity 내부 UI 라이브러리를 가져와야 함
+
+	* using UnityEngine.UI;

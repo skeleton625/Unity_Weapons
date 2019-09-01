@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class GunController : MonoBehaviour
 {
+    public static bool isActivate;
+
     [SerializeField]
     private Gun currentGun;
     /* 
@@ -36,12 +38,15 @@ public class GunController : MonoBehaviour
     [SerializeField]
     /* 총 피격에 대한 효과 오브젝트 */
     private GameObject hitEffectPrefab;
+    private CrossHair theCrossHair;
 
     void Start()
     {
         originPos = Vector3.zero;
         /* .총기 발사음 오디오 함수 정의 */
         gunAudioSource = GetComponent<AudioSource>();
+        /* 크로스헤어 애니메이션 객체 */
+        theCrossHair = FindObjectOfType<CrossHair>();
         /* 총구가 x축 방향을 향하고 있기 때문에 x축의 위치를 변경시켜 줌 */
         /* 일반 사격 시, 반동 위치 정의 */
         recoilBack = new Vector3(currentGun.retroActionForce, originPos.y, originPos.z);
@@ -49,21 +54,30 @@ public class GunController : MonoBehaviour
         retroActionRecoilBack = new Vector3(currentGun.retroActionFineSightForce,
                                                 currentGun.fineSightOriginPos.y, currentGun.fineSightOriginPos.z);
 
+        // 임시
+        WeaponManager.currentWeapon = currentGun.GetComponent<Transform>();
+        WeaponManager.currentWeaponAnim = currentGun.GetComponent<Animator>();
+        isActivate = true;
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        /* 총 발사 주기 계산 */
-        GunFireRateCalc();
-        /* 총 발사 시도 */
-        TryFire();
-        /* 재장전 시도 */
-        TryReload();
-        /* 정조준 시도 */
-        TryFineSight();
+        if(isActivate)
+        {
+            /* 총 발사 주기 계산 */
+            GunFireRateCalc();
+            /* 총 발사 시도 */
+            TryFire();
+            /* 재장전 시도 */
+            TryReload();
+            /* 정조준 시도 */
+            TryFineSight();
+        }
     }
 
+    // 총 발사 주기 계산 함수
     private void GunFireRateCalc()
     {
         /* currentFireRate가 0 이상이면 매 프레임마다 currentFireRate를 감소시킴 */
@@ -138,7 +152,12 @@ public class GunController : MonoBehaviour
     // 총알 발사 이후 함수
     private void Shoot()
     {
+        
+        /* 총알을 발사할 경우 현재 총알 개수 감소 */
         --currentGun.currentBulletCount;
+        /* 총 발사와 관련해 크로스 헤어 애니메이션 실행 */
+        theCrossHair.FireAnimation();
+
         /* 한 발 연사 시간 초기화 */
         currentFireRate = currentGun.fireRate;
         /* 총격이 오브젝트에 맞는지 확인 */
@@ -158,7 +177,11 @@ public class GunController : MonoBehaviour
     private void Hit()
     {
         /* 레이저 발사 위치를 절대 좌표로 정의 -> 상대 좌표는 발사하는 위치가 변하지 않기 때문 */
-        if(Physics.Raycast(theCamera.transform.position, theCamera.transform.forward, out hitInfo, currentGun.range))
+        if(Physics.Raycast(theCamera.transform.position,
+            /* 상태와 총기에 따른 정확도를 피격 위치에 적용함 */
+            theCamera.transform.forward + new Vector3(createRandomAccuracy(), createRandomAccuracy(), 0), 
+            out hitInfo, 
+            currentGun.range))
         {
             /*
              * 피격된 위치에 효과 오브젝트가 생성되도록 함
@@ -172,12 +195,22 @@ public class GunController : MonoBehaviour
         }
     }
 
+    /* 상태, 및 총에 따른 정확도 랜덤 계산 함수 */
+    private float createRandomAccuracy()
+    {
+        return Random.Range(
+            - theCrossHair.GetAccuracy(isFineSightMode) - currentGun.accuracy,
+            theCrossHair.GetAccuracy(isFineSightMode) + currentGun.accuracy);
+    }
+
     // 정조준 실행 함수
     private void FineSight()
     {
         /* 정조준 상태를 변경 */
         isFineSightMode = !isFineSightMode;
         currentGun.anim.SetBool("FineSightMode", isFineSightMode);
+        /* 크로스헤어의 정조준 상태 변경 */
+        theCrossHair.FineSightAnimation(isFineSightMode);
 
         /* */
         if(isFineSightMode)
@@ -196,6 +229,16 @@ public class GunController : MonoBehaviour
     {
         if (isFineSightMode)
             FineSight();
+    }
+
+    public void CanelReload()
+    {
+        /* 재장전 중일 경우, 재장전 코루틴을 취소하고 재장전을 취소함 */
+        if (isReload)
+        {
+            StopAllCoroutines();
+            isReload = false;
+        }
     }
 
     // 총기 소리 실행 함수
@@ -320,5 +363,32 @@ public class GunController : MonoBehaviour
                 yield return null;
             }
         }
+    }
+
+    // 클래스의 현재 총 객체를 반환하는 함수
+    public Gun GetGun()
+    {
+        return currentGun;
+    }
+
+    public void GunChange(Gun _gun)
+    {
+        /* 특정 물체를 들고 있는 경우 */
+        if(WeaponManager.currentWeapon != null)
+        {
+            /* 이전에 활성화 되어있는 무기 오브젝트를 비활성화 함 */
+            WeaponManager.currentWeapon.gameObject.SetActive(false);
+        }
+        /* 현재 무기를 변경 */
+        currentGun = _gun;
+        /* WeaponManager에 현재 무기 입력 */
+        WeaponManager.currentWeapon = currentGun.GetComponent<Transform>();
+        WeaponManager.currentWeaponAnim = currentGun.anim;
+        /* 이전 무기에 의해 위치가 변경되었을 수도 있으므로 초기화 */
+        currentGun.transform.localPosition = Vector3.zero;
+        /* 변경된 무기 오브젝트를 활성화 함 */
+        currentGun.gameObject.SetActive(true);
+        /* 현재 총을 사용하고 있음을 표시 - 임시 */
+        isActivate = true;
     }
 }

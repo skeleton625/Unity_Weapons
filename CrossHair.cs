@@ -18,10 +18,20 @@ public class CrossHair : MonoBehaviour
     /* 각 함수들은 해당 상태에 따른 참, 거짓을 Animator에 전송하는 함수들 */
     public void WalkingAnimation(bool _flag)
     {
+        /* WeaponManager를 통해 Aminator 관리 */
+        WeaponManager.currentWeaponAnim.SetBool("Walk", _flag);
         anim.SetBool("Walking", _flag);
     }
 
     public void RunningAnimation(bool _flag)
+    {
+        /* WeaponManager를 통해 Aminator 관리 */
+        WeaponManager.currentWeaponAnim.SetBool("Run", _flag);
+        anim.SetBool("Running", _flag);
+    }
+
+    // 경사면에서 미끄러질 때, 달리는 애니메이션을 동작시키지 않도록 새로 정의
+    public void JumpingAnimation(bool _flag)
     {
         anim.SetBool("Running", _flag);
     }
